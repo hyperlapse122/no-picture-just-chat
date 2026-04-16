@@ -2,6 +2,7 @@
   "name": "@h82/no-picture-just-chat",
   "packageManager": "yarn@4.13.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "validate:config": "node scripts/validate-config.mjs",
     "lint": "eslint .",
