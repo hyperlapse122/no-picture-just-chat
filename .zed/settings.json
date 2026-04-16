@@ -1,23 +1,31 @@
 {
-  // Folder-specific settings
-  //
-  // For a full list of overridable settings, and general information on folder-specific settings,//zed.dev/docs/configuring-zed#settings-files
   "prettier": {
-    "allowed": true,
+    "allowed": true
   },
+  "format_on_save": "on",
   "lsp": {
-    "eslint": {},
+    "eslint": {}
   },
   "languages": {
     "JavaScript": {
       "code_actions_on_format": {
-        "source.fixAll.eslint": true,
-      },
+        "source.fixAll.eslint": true
+      }
     },
     "TypeScript": {
       "code_actions_on_format": {
-        "source.fixAll.eslint": true,
-      },
+        "source.fixAll.eslint": true
+      }
     },
-  },
+    "TSX": {
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true
+      }
+    },
+    "JSX": {
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true
+      }
+    }
+  }
 }
