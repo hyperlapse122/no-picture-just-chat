@@ -1,0 +1,33 @@
+{
+  "name": "@h82/no-picture-just-chat-config",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint": "./eslint.config.js",
+    "./prettier": "./prettier.config.js",
+    "./typescript": "./tsconfig.base.json",
+    "./vite": "./vite.config.js",
+    "./vitest": "./vitest.config.js",
+    "./playwright": "./playwright.config.js"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.51.0",
+    "eslint": ">=10.0.0",
+    "prettier": ">=3.5.0",
+    "typescript": ">=5.8.0",
+    "vite": ">=6.0.0",
+    "vitest": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
+  }
+}

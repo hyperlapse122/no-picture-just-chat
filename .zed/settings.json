@@ -1,0 +1,23 @@
+{
+  // Folder-specific settings
+  //
+  // For a full list of overridable settings, and general information on folder-specific settings,//zed.dev/docs/configuring-zed#settings-files
+  "prettier": {
+    "allowed": true,
+  },
+  "lsp": {
+    "eslint": {},
+  },
+  "languages": {
+    "JavaScript": {
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true,
+      },
+    },
+    "TypeScript": {
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true,
+      },
+    },
+  },
+}
