@@ -2,5 +2,9 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@h82/no-picture-just-chat-config/typescript",
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./packages/config/tsconfig.json"
+    }
+  ]
 }
