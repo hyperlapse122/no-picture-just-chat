@@ -1,0 +1,29 @@
+name: Test
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: yarn
+      - run: corepack enable
+      - run: yarn install --immutable
+      # TODO: wire up once a `test` script exists in package.json (or per-workspace).
+      # Planned activation:
+      #   - run: yarn workspaces foreach --all run test
+      # Also flip triggers: add `pull_request` and `push: { branches: [main] }`.
+      - name: No-op placeholder
+        run: echo "Test workflow stub — no tests to run yet."
