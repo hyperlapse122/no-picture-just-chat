@@ -1,0 +1,61 @@
+# lefthook — git hook runner for no-picture-just-chat.
+#
+# Reference:    https://lefthook.dev/configuration/
+# Skills:       .agents/skills/npjc-commits, npjc-branching, npjc-pull-requests
+# Install:      `yarn lefthook install` (also runs via package.json `prepare` on `yarn install`)
+# Skip locally: `LEFTHOOK=0 git commit ...` or create lefthook-local.yml (gitignored)
+
+# ---------------------------------------------------------------------------
+# pre-commit — format + lint staged files before they enter history.
+# ---------------------------------------------------------------------------
+# Commands run sequentially (piped: true): eslint --fix runs first so that
+# prettier --write can normalize formatting afterwards. Piped mode also
+# short-circuits on the first non-zero exit, so unfixable lint errors block
+# the commit before prettier runs.
+pre-commit:
+  piped: true
+  commands:
+    eslint:
+      tags: lint
+      glob: '*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'
+      run: yarn eslint --fix {staged_files}
+      stage_fixed: true
+
+    prettier:
+      tags: format
+      glob: '*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,md,yml,yaml,css,html}'
+      run: yarn prettier --write --ignore-unknown {staged_files}
+      stage_fixed: true
+
+# ---------------------------------------------------------------------------
+# commit-msg — validate the commit message against Conventional Commits.
+# ---------------------------------------------------------------------------
+# `{1}` is lefthook's placeholder for the commit message file path that git
+# passes to the commit-msg hook. See lefthook docs → variables.
+commit-msg:
+  commands:
+    commitlint:
+      run: yarn commitlint --edit {1}
+
+# ---------------------------------------------------------------------------
+# pre-push — reject branches that violate the branching convention.
+# ---------------------------------------------------------------------------
+# Pattern: main OR {feature|bugfix|hotfix|chore|docs|refactor|release}/<slug>
+# Slug characters: lowercase alphanumeric, dot, underscore, or hyphen.
+# See .agents/skills/npjc-branching/SKILL.md for the full rationale.
+pre-push:
+  commands:
+    branch-name:
+      tags: convention
+      run: |
+        branch="$(git rev-parse --abbrev-ref HEAD)"
+        pattern='^(main|(feature|bugfix|hotfix|chore|docs|refactor|release)/[a-z0-9._-]+)$'
+        if ! printf '%s' "$branch" | grep -Eq "$pattern"; then
+          printf '\n\033[31m✗ Branch name "%s" violates the NPJC branching convention.\033[0m\n' "$branch" >&2
+          printf '  Allowed: main OR <type>/<slug> where type is one of:\n' >&2
+          printf '    feature  bugfix  hotfix  chore  docs  refactor  release\n' >&2
+          printf '  Slug: lowercase a-z, 0-9, dot, underscore, or hyphen.\n' >&2
+          printf '  Examples: feature/add-oauth2, bugfix/fix-login-redirect\n' >&2
+          printf '  See .agents/skills/npjc-branching/SKILL.md\n\n' >&2
+          exit 1
+        fi

@@ -4,17 +4,21 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare": "lefthook install",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@h82/no-picture-just-chat-config": "workspace:*",
     "@playwright/test": "^1.59.1",
     "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.5.0",
+    "lefthook": "^2.1.6",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.58.2",

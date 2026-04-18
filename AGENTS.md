@@ -6,6 +6,88 @@ Anonymous BBS system with generative AI. Private monorepo, skeleton phase — sh
 
 ---
 
+# Development Workflow
+
+All workflow rules below are **enforced locally by lefthook** (`lefthook.yml`) and documented in detail by project-local skills under `.agents/skills/`. Load a skill whenever the corresponding trigger applies — skills contain the full rulebook; this section is the overview.
+
+## Commit Messages — Conventional Commits 1.0.0
+
+- **Format**: `<type>(<optional scope>): <subject>`
+- **Allowed types**: `feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert`
+- **Subject**: imperative mood, lower-case, no trailing period, header ≤ 72 chars
+- **Enforced by**: `lefthook.yml` → `commit-msg` → `yarn commitlint --edit {1}`
+- **Config**: `commitlint.config.js` (extends `@commitlint/config-conventional`)
+- **Full rules**: `.agents/skills/npjc-commits/SKILL.md`
+
+```text
+feat(config): add lefthook and commitlint
+fix(config): align shared eslint and tsconfig setup
+docs: expand AGENTS.md with development workflow
+```
+
+## Branching — GitHub Flow + Git Flow naming ("Conventional Branch")
+
+- **Workflow**: short-lived branches off `main`, PR + review, squash-merge to `main`. No `develop` branch.
+- **Pattern**: `^(main|(feature|bugfix|hotfix|chore|docs|refactor|release)/[a-z0-9._-]+)$`
+- **Enforced by**: `lefthook.yml` → `pre-push` → `branch-name`
+- **Full rules**: `.agents/skills/npjc-branching/SKILL.md`
+- **Naming helper skill**: `git-flow-branch-creator` (auto-generates names from `git diff`)
+
+```bash
+git checkout -b feature/add-oauth-login   # ✓
+git checkout -b feat/add-auth              # ✗ rejected by pre-push
+git checkout -b opencode/playful-engine    # ✗ rejected by pre-push
+```
+
+## Pull Requests — squash-merge, template-driven
+
+- **Title**: same Conventional Commits format as commits (becomes `main`'s commit on squash).
+- **Body**: fill every section of `.github/PULL_REQUEST_TEMPLATE.md` or write `N/A` with a reason.
+- **Required sections**: Summary, What changed, What did NOT change (scope boundary), Verification evidence (actual output), Manual QA (incl. what you did NOT verify), Risk/blast radius, Self-review, Linked issue.
+- **Merge strategy**: squash only.
+- **Assignee**: self (`gh pr create --assignee @me`).
+- **Full rules**: `.agents/skills/npjc-pull-requests/SKILL.md`
+
+## Git Hooks — lefthook
+
+| Hook         | Action                                                                                                |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
+| `pre-commit` | `yarn eslint --fix` then `yarn prettier --write` on staged files (piped: fail-fast, auto-stage fixed) |
+| `commit-msg` | `yarn commitlint --edit {1}` — enforces Conventional Commits                                          |
+| `pre-push`   | Branch-name regex guard — enforces the branching pattern above                                        |
+
+- **Install**: runs automatically on `yarn install` via the `prepare` script; manual install: `yarn lefthook install`.
+- **Bypass** (discouraged): `LEFTHOOK=0 git commit ...` or `lefthook-local.yml` (per-machine, gitignored).
+- **Config**: `lefthook.yml` at repo root.
+
+## Dependency Versions — always verify via yarn/npm, never trust LLM memory
+
+LLM-authored changes often cite stale "latest" versions. **Before writing any version into `package.json`**, run one of:
+
+```bash
+yarn npm info <pkg> version           # preferred — dist-tag 'latest'
+yarn npm info <pkg> dist-tags --json  # all dist-tags
+npm view <pkg> version                # fallback
+```
+
+- **After `yarn add` / `yarn up`**: verify the resolved version with `yarn info <pkg> --json | jq -r '.children.Version'` and cite it in the commit + PR body.
+- **Never** paste a version string from memory, a blog post, or training-data knowledge without re-verifying.
+- **Full workflow + anti-patterns**: `.agents/skills/npjc-dependencies/SKILL.md`
+- **PR self-review** has a dedicated "Dependencies" checkbox for this.
+
+## Skills Index (project-local, `.agents/skills/`)
+
+| Skill                | Use when…                                                 |
+| -------------------- | --------------------------------------------------------- |
+| `npjc-commits`       | Writing any commit message                                |
+| `npjc-branching`     | Creating, naming, or pushing branches                     |
+| `npjc-pull-requests` | Creating, updating, or reviewing PRs                      |
+| `npjc-dependencies`  | Adding, upgrading, or citing any npm/yarn package version |
+
+User-level skill `git-flow-branch-creator` pairs with `npjc-branching` to generate branch names from diffs.
+
+---
+
 # Export Policy
 
 ## No Barrel Exports
@@ -85,6 +167,9 @@ Private Yarn workspaces monorepo (skeleton phase). Currently contains only a sha
 - **No `dist/` in config package** — ships as source, never build
 - **No root wrappers without consumers** — don't create vite/vitest/playwright wrappers at root until `apps/`/`e2e/` exist
 - **No Python** — use Node.js/Deno/Bun for scripting
+- **No hook bypass without cause** — don't default to `LEFTHOOK=0` or `--no-verify`; fix the lint/format/commit-msg/branch-name issue instead
+- **No version strings from memory** — LLM memory is stale; always `yarn npm info <pkg> version` before writing into `package.json`
+- **No squash-commit drift** — PR title = final commit on `main`, so PR titles must follow Conventional Commits
 
 ## Commands
 
@@ -93,6 +178,9 @@ yarn lint              # ESLint (flat config)
 yarn format:check      # Prettier check
 yarn format            # Prettier write
 yarn typecheck         # tsc --noEmit
+yarn lefthook install  # (Re)install git hooks — also runs via `prepare` on `yarn install`
+yarn commitlint --edit <file>   # Manually lint a commit message
+yarn npm info <pkg> version     # Verify latest published version before bumping
 ```
 
 ## Notes
