@@ -19,3 +19,6 @@ node_modules
 # oh-my-openagents
 .sisyphus/*
 !.sisyphus/notepads
+
+# lefthook — per-machine overrides (not committed)
+lefthook-local.yml
