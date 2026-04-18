@@ -28,3 +28,13 @@
 - TODO comments for deploy target
 - No secrets references
 - Committed: ci(actions): scaffold disabled deploy workflow stub
+
+## F3 Manual QA findings (2026-04-19)
+
+- `gh pr checks --json=name,bucket` is the canonical field for check state in gh ≥ 2.40: `bucket ∈ {pass, fail, pending, skipping, cancel}`. The older `state` field is not exposed on this command.
+- `gh run list --json` uses `conclusion` (success/failure), NOT `bucket`. Do not conflate the two CLIs.
+- `workflow_dispatch` trigger: GitHub Actions only accepts dispatch for workflows whose file exists on the **default branch**, even when `--ref` points elsewhere. A `workflow_dispatch`-only stub on a feature branch returns HTTP 404 until merged. validate.yml escapes this because it's also wired to `pull_request`/`push`, which registers it with Actions once it runs naturally on the PR.
+- Trigger isolation is observable via `gh run list --branch=<br> --json=name,event,headSha` filtered on the current HEAD sha. For pushes on a pull-request-triggered workflow, expect exactly: Validate-pull_request=1, Validate-push=0, Test=0, Deploy=0.
+- `LEFTHOOK=0 git commit --allow-empty -m 'wip'` is the safe probe for the server-side commitlint job — it bypasses the local `commit-msg` hook so the bad message reaches origin and the GH workflow can fail on it.
+- `git push --force-with-lease` is the correct restore after a bad-commit probe: it's non-destructive if anyone else pushed (rejects instead of clobbering), and it clears the feature-branch history back to HEAD~1 without touching main.
+- When restoring a bad PR title, `gh pr edit --title '<correct>'` triggers a fresh PR check cycle; the pr-title action re-evaluates on every edit.

@@ -225,3 +225,25 @@ yarn npm info <pkg> version     # Verify latest published version before bumping
 - **JSON import attribute** — `with { type: 'json' }` required for TypeScript config import in Node.js ≥ 20.
 - **VSCode** — format-on-save with Prettier, ESLint auto-fix on save, flat config enabled.
 - **ESLint 10 + flat config** — uses `tseslint.config()` spread pattern with `eslint-config-prettier`.
+
+## CI / GitHub Actions
+
+Three workflows are configured in `.github/workflows/`:
+
+- `validate.yml`: Runs on `main` push, PR (opened/sync/reopened/edited), and `workflow_dispatch`. 5 parallel jobs: `lint`, `format-check`, `typecheck`, `commitlint`, `pr-title`. `commitlint` and `pr-title` are gated to PRs.
+- `test.yml`: `workflow_dispatch` stub. No tests currently exist; activates when a `test` script is added.
+- `deploy.yml`: `workflow_dispatch` stub with an `environment` input (default: `preview`). Target (Vercel, Cloudflare, etc.) is TBD.
+
+### CI Advisory
+
+- **Node version**: Hardcoded to `24` (matches `mise.toml`) as `setup-node` doesn't read mise config.
+- **Composite action candidate**: `validate.yml` has 5 identical setup blocks. Consider `.github/actions/setup/` if jobs increase.
+- **Dispatch limitation**: Stub workflows must exist on the default branch (`main`) to be dispatchable via `gh workflow run` without `--ref`. Use `gh workflow run <name> --ref <branch>` during development.
+- **Deploy inputs**: `deploy.yml` currently echoes `${{ inputs.environment }}` in a `run` block. Switch to an `env` pattern when wiring a real target.
+
+### Linked Skills
+
+| Skill                | Relevance to CI                                                                   |
+| -------------------- | --------------------------------------------------------------------------------- |
+| `npjc-commits`       | CI enforces Conventional Commits via `commitlint` job                             |
+| `npjc-pull-requests` | PR titles are linted in CI to ensure semantic squash-merges; PR body requirements |
