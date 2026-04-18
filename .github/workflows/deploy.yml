@@ -1,0 +1,35 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment (placeholder — TBD when deploy target is chosen)'
+        required: false
+        default: 'preview'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.environment }}
+  cancel-in-progress: false # deploys must not cancel each other mid-flight
+
+permissions:
+  contents: read
+  # TODO: grant additional permissions (id-token, deployments, packages) once the deploy target is chosen.
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # TODO: add `environment: <name>` here once environments are configured in repo settings.
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: add setup steps for the chosen deploy target.
+      # Candidates under consideration (pick one when ready):
+      #   - Cloudflare Workers (wrangler deploy)
+      #   - Vercel (vercel pull + vercel deploy)
+      #   - Fly.io (flyctl deploy)
+      #   - Self-hosted via SSH
+      - name: Placeholder — no deploy target configured
+        run: |
+          echo "Deploy workflow stub."
+          echo "Environment: ${{ inputs.environment }}"
+          echo "TODO: configure actual deploy steps for the chosen target."
