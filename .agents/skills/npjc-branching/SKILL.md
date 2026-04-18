@@ -63,16 +63,59 @@ gh pr create --assignee @me --title "feat(auth): add OAuth login"
 - **Bypass**: `LEFTHOOK=0 git push ...` (discouraged).
 - **Fallback**: Server-side branch protection on `main` in GitHub settings (recommended to add).
 
-## Renaming an Auto-generated Branch
+## Renaming an Auto-generated Branch (MANDATORY for agents)
 
-OpenCode's default branch names (e.g. `opencode/playful-engine`) violate the pattern. Rename before pushing:
+AI-coding-agent tools create default branch names that violate this project's `pre-push` pattern. Currently
+observed patterns:
+
+| Agent    | Auto-generated pattern |
+| -------- | ---------------------- |
+| OpenCode | `opencode/<slug>`      |
+| Codex    | `codex/<slug>`         |
+
+Detection regex:
+
+```
+^(opencode|codex)/.+$
+```
+
+**Rule**: if `git branch --show-current` matches this regex, the agent **MUST** rename the branch before
+attempting any `git push`. The local `pre-push` hook will reject the push otherwise, and server-side CI
+never sees un-pushed branches.
+
+### Procedure
+
+1. Detect: `git branch --show-current | grep -Eq '^(opencode|codex)/.+$'`
+2. Analyze `git status` + `git diff origin/main` + recent commit messages to infer a descriptive slug.
+3. Pick the correct Conventional Branch prefix:
+   `feature/`, `bugfix/`, `hotfix/`, `chore/`, `docs/`, `refactor/`, `release/`.
+4. Rename locally:
+
+   ```bash
+   git branch -m <prefix>/<descriptive-slug>
+   ```
+
+5. Verify against the project regex:
+
+   ```bash
+   git branch --show-current | grep -Eq '^(main|(feature|bugfix|hotfix|chore|docs|refactor|release)/[a-z0-9._-]+)$'
+   ```
+
+6. Push: `git push -u origin <prefix>/<descriptive-slug>`.
+
+### Automated name generation
+
+The user-level `git-flow-branch-creator` skill analyzes staged/committed changes and produces a Conventional
+Branch name automatically. Prefer it when the slug is non-obvious.
+
+### Recovery if already pushed
+
+If the auto-generated branch was pushed to the remote (should be impossible — the `pre-push` hook rejects
+it — but included for completeness):
 
 ```bash
-# Manual rename
-git branch -m feature/descriptive-name
-
-# Or load the git-flow-branch-creator skill to generate the correct name
-# from `git status` + `git diff`
+# After the correctly-named branch exists on remote:
+git push origin --delete <old-auto-generated-name>
 ```
 
 ## Merging
