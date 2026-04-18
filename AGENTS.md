@@ -39,6 +39,41 @@ git checkout -b feat/add-auth              # ✗ rejected by pre-push
 git checkout -b opencode/playful-engine    # ✗ rejected by pre-push
 ```
 
+### Agents on auto-generated branches (MANDATORY rename before push)
+
+If `git branch --show-current` returns a branch matching the regex
+
+```
+^(opencode|codex)/.+$
+```
+
+(e.g. `opencode/quick-otter`, `codex/refactor-chat`), the agent **MUST** rename it to follow the
+Conventional Branch pattern **before any `git push`**. The local `pre-push` hook will reject the push
+otherwise, and server-side CI assumes branches already conform.
+
+Procedure:
+
+1. Analyze the current diff + commit history to infer a descriptive slug.
+2. Pick the correct prefix (`feature/`, `bugfix/`, `hotfix/`, `chore/`, `docs/`, `refactor/`, `release/`).
+3. Rename:
+
+   ```bash
+   git branch -m <prefix>/<slug>
+   ```
+
+4. Verify: `git branch --show-current` matches the project regex in `lefthook.yml:pre-push`.
+5. Push normally: `git push -u origin <prefix>/<slug>`.
+
+If the auto-generated branch was already pushed to the remote (rare — `pre-push` rejects it), delete
+the remote ref AFTER the correctly-named branch has been pushed:
+
+```bash
+git push origin --delete <old-auto-generated-name>
+```
+
+The `git-flow-branch-creator` skill (user-level) can automate the naming step. Full rulebook:
+`.agents/skills/npjc-branching/SKILL.md`.
+
 ## Pull Requests — squash-merge, template-driven
 
 - **Title**: same Conventional Commits format as commits (becomes `main`'s commit on squash).
