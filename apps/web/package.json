@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
-    "start": "node dist/server/server.js",
+    "start": "node server.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@h82/no-picture-just-chat-config": "workspace:^",
+    "@hono/node-server": "1.19.14",
     "@opentelemetry/api": "1.9.1",
     "@tailwindcss/vite": "4.2.2",
     "@tanstack/react-form": "1.29.0",
