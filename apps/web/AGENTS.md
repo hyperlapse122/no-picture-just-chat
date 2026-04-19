@@ -43,16 +43,16 @@ Full-stack BBS application built with TanStack Start, tRPC, and Drizzle. It uses
 
 # Key Files
 
-| File                              | Purpose                                    |
-| --------------------------------- | ------------------------------------------ |
-| `src/router.tsx`                  | Router configuration and QueryClient setup |
-| `src/routes/__root.tsx`           | Global layout and provider wrapper         |
-| `src/integrations/trpc/react.ts`  | Frontend tRPC hooks (`useTRPC`)            |
-| `src/integrations/trpc/server.ts` | Server-side tRPC caller for SSR loaders    |
-| `src/server/trpc/router.ts`       | Primary tRPC router definition             |
-| `src/lib/auth.ts`                 | Server-side better-auth configuration      |
-| `src/lib/auth-client.ts`          | Client-side better-auth hooks              |
-| `src/env.ts`                      | Environment variable validation (arktype)  |
+| File                                     | Purpose                                    |
+| ---------------------------------------- | ------------------------------------------ |
+| `src/router.tsx`                         | Router configuration and QueryClient setup |
+| `src/routes/__root.tsx`                  | Global layout and provider wrapper         |
+| `src/integrations/trpc/react.ts`         | Frontend tRPC hooks (`useTRPC`)            |
+| `src/integrations/trpc/server.server.ts` | Server-side tRPC caller for SSR loaders    |
+| `src/server/trpc/router.ts`              | Primary tRPC router definition             |
+| `src/lib/auth.ts`                        | Server-side better-auth configuration      |
+| `src/lib/auth-client.ts`                 | Client-side better-auth hooks              |
+| `src/env.ts`                             | Environment variable validation (arktype)  |
 
 ---
 
