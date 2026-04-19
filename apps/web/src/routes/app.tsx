@@ -1,10 +1,10 @@
+import { createServerFn } from '@tanstack/react-start';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useForm } from '@tanstack/react-form';
 import { useMutation } from '@tanstack/react-query';
 import { type } from 'arktype';
 import { useTRPC } from '@/integrations/trpc/react';
 import { signOut } from '@/lib/auth-client';
-import { auth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,11 +12,17 @@ import { Label } from '@/components/ui/label';
 
 const labelSchema = type({ label: 'string >= 1' });
 
+const getSession = createServerFn({ method: 'GET' }).handler(async () => {
+  const { getRequestHeaders } = await import('@tanstack/react-start/server');
+  const { auth } = await import('@/lib/auth');
+  const headers = getRequestHeaders();
+
+  return auth.api.getSession({ headers });
+});
+
 export const Route = createFileRoute('/app')({
   loader: async () => {
-    const { getRequestHeaders } = await import('@tanstack/react-start/server');
-    const headers = getRequestHeaders();
-    const session = await auth.api.getSession({ headers });
+    const session = await getSession();
     if (!session) {
       throw redirect({ to: '/login' });
     }
