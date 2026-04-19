@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { useEffect, useRef, useState } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
 import { useForm } from '@tanstack/react-form';
 import { type } from 'arktype';
 
@@ -19,28 +19,55 @@ export const Route = createFileRoute('/login')({
 });
 
 function RouteComponent() {
-  const router = useRouter();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const form = useForm({
     defaultValues: {
       email: '',
       password: '',
     },
-    onSubmit: async ({ value }) => {
-      setAuthError(null);
-      const result = await signIn.email({
-        email: value.email,
-        password: value.password,
+  });
+
+  const handleLogin = async () => {
+    if (isSubmitting || !formRef.current) {
+      return;
+    }
+
+    const formData = new FormData(formRef.current);
+    const email = String(formData.get('email') ?? '');
+    const password = String(formData.get('password') ?? '');
+
+    if (!loginSchema.allows({ email, password })) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      const { error } = await signIn.email({
+        email,
+        password,
+        callbackURL: '/app',
       });
 
-      if (result.error) {
-        setAuthError(result.error.message ?? 'Login failed');
-      } else {
-        router.navigate({ to: '/app' });
+      if (error) {
+        setAuthError(error.message ?? 'Login failed');
+        return;
       }
-    },
-  });
+
+      window.location.assign('/app');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -50,10 +77,11 @@ function RouteComponent() {
         </CardHeader>
         <CardContent>
           <form
+            ref={formRef}
             onSubmit={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              form.handleSubmit();
+              void handleLogin();
             }}
             className="flex flex-col gap-4"
           >
@@ -75,6 +103,7 @@ function RouteComponent() {
                     type="email"
                     name={field.name}
                     value={field.state.value}
+                    disabled={!isHydrated || isSubmitting}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
                   />
@@ -103,6 +132,7 @@ function RouteComponent() {
                     type="password"
                     name={field.name}
                     value={field.state.value}
+                    disabled={!isHydrated || isSubmitting}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
                   />
@@ -119,18 +149,15 @@ function RouteComponent() {
               </div>
             )}
 
-            <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-              {([canSubmit, isSubmitting]) => (
-                <Button
-                  type="submit"
-                  data-testid="login-submit"
-                  disabled={!canSubmit || isSubmitting}
-                  className="mt-2"
-                >
-                  {isSubmitting ? 'Logging in...' : 'Login'}
-                </Button>
-              )}
-            </form.Subscribe>
+            <Button
+              type="button"
+              data-testid="login-submit"
+              disabled={!isHydrated || isSubmitting}
+              className="mt-2"
+              onClick={() => void handleLogin()}
+            >
+              {isSubmitting ? 'Logging in...' : 'Login'}
+            </Button>
           </form>
         </CardContent>
       </Card>

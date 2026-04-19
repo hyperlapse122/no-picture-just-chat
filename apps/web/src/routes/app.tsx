@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { createServerFn } from '@tanstack/react-start';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useForm } from '@tanstack/react-form';
@@ -33,6 +34,11 @@ export const Route = createFileRoute('/app')({
 function AppPage() {
   const trpc = useTRPC();
   const submitMutation = useMutation(trpc.demo.submit.mutationOptions());
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const form = useForm({
     defaultValues: { label: '' },
@@ -44,7 +50,20 @@ function AppPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-4">
       <div className="w-full max-w-md flex justify-end">
-        <Button data-testid="signout-btn" variant="outline" onClick={() => signOut()}>
+        <Button
+          data-testid="signout-btn"
+          variant="outline"
+          disabled={!isHydrated}
+          onClick={() =>
+            signOut({
+              fetchOptions: {
+                onSuccess: () => {
+                  window.location.assign('/login');
+                },
+              },
+            })
+          }
+        >
           Sign out
         </Button>
       </div>
@@ -81,6 +100,7 @@ function AppPage() {
                     id={field.name}
                     data-testid="app-form-label"
                     name={field.name}
+                    disabled={!isHydrated || submitMutation.isPending}
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
@@ -92,7 +112,11 @@ function AppPage() {
               )}
             </form.Field>
 
-            <Button type="submit" data-testid="app-form-submit" disabled={submitMutation.isPending}>
+            <Button
+              type="submit"
+              data-testid="app-form-submit"
+              disabled={!isHydrated || submitMutation.isPending}
+            >
               {submitMutation.isPending ? 'Submitting...' : 'Submit'}
             </Button>
           </form>
