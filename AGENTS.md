@@ -112,12 +112,13 @@ npm view <pkg> version                # fallback
 
 ## Skills Index (project-local, `.agents/skills/`)
 
-| Skill                | Use when…                                                 |
-| -------------------- | --------------------------------------------------------- |
-| `npjc-commits`       | Writing any commit message                                |
-| `npjc-branching`     | Creating, naming, or pushing branches                     |
-| `npjc-pull-requests` | Creating, updating, or reviewing PRs                      |
-| `npjc-dependencies`  | Adding, upgrading, or citing any npm/yarn package version |
+| Skill                    | Use when…                                                 |
+| ------------------------ | --------------------------------------------------------- |
+| `npjc-commits`           | Writing any commit message                                |
+| `npjc-branching`         | Creating, naming, or pushing branches                     |
+| `npjc-pull-requests`     | Creating, updating, or reviewing PRs                      |
+| `npjc-ssr-data-fetching` | Writing loaders, using `useQuery`, SSR prefetch pattern   |
+| `npjc-dependencies`      | Adding, upgrading, or citing any npm/yarn package version |
 
 User-level skill `git-flow-branch-creator` pairs with `npjc-branching` to generate branch names from diffs.
 
@@ -152,6 +153,59 @@ Single internal shared config package. Key facts for agents:
 - **`@eslint/js` is not directly available** — use `tseslint.configs.recommended` (includes JS recommended internally)
 - **Root consumer pattern**: thin `.js` wrappers re-export from package subpaths; `tsconfig.json` uses `"extends"`
 - **No root wrappers for vite/vitest/playwright** until actual consumers (`apps/*`, `e2e/*`) exist
+
+---
+
+# Web App (`apps/web`)
+
+## Package: `@h82/no-picture-just-chat-web`
+
+Full-stack web application using TanStack Start.
+
+**Stack**:
+
+- **Framework**: TanStack Start 1.167.42 (Router 1.168.23)
+- **UI**: Tailwind 4.2.2 · React 19.2.5 · shadcn/ui · Radix UI
+- **Data**: TanStack Query 5.99.2 · tRPC 11.16.0
+- **Forms**: TanStack Form 1.29.0 · arktype 2.2.0 (validation)
+- **Auth**: better-auth 1.6.5
+- **DB**: Drizzle ORM 0.45.2 · PostgreSQL (Neon)
+
+## Key File Paths
+
+| Path                                       | Description                                |
+| ------------------------------------------ | ------------------------------------------ |
+| `apps/web/src/router.tsx`                  | Router configuration and QueryClient setup |
+| `apps/web/src/routes/`                     | File-based routes (TanStack Router)        |
+| `apps/web/src/integrations/trpc/react.ts`  | Frontend tRPC hooks (`useTRPC`)            |
+| `apps/web/src/integrations/trpc/server.ts` | Server-side tRPC caller for SSR            |
+| `apps/web/src/server/trpc/`                | tRPC router definitions and procedures     |
+| `apps/web/src/db/`                         | Database schema and Drizzle client         |
+| `apps/web/src/lib/auth.ts`                 | better-auth server configuration           |
+| `apps/web/src/lib/auth-client.ts`          | better-auth client hooks                   |
+| `apps/web/src/env.ts`                      | Environment variable validation (arktype)  |
+
+## SSR Rule
+
+Loaders **MUST** use `ensureQueryData` to prefetch data into the cache. Never return data directly from loaders; the component should use `useQuery` with the same query options.
+
+See the `npjc-ssr-data-fetching` skill for the full pattern and rationale.
+
+## Commands
+
+```bash
+# Start development server
+cd apps/web && source .env && PATH="$ROOT/node_modules/.bin:$PATH" vite dev --port 3000
+
+# Database migrations
+yarn workspace @h82/no-picture-just-chat-web db:push
+```
+
+## Auth Test User
+
+| Email                 | Password         |
+| --------------------- | ---------------- |
+| `qa-bot@example.test` | `QaBot!2026Pass` |
 
 ---
 
