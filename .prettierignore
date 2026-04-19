@@ -1,3 +1,9 @@
 .yarn
 .zed
 .sisyphus
+# Build outputs
+dist
+.output
+.vinxi
+# Auto-generated files
+apps/web/src/routeTree.gen.ts
