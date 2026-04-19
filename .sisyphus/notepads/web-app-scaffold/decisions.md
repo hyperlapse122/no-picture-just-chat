@@ -17,3 +17,9 @@
 
 - Added `apps/web/drizzle.config.ts` with explicit schema array and `DATABASE_URL_DIRECT`-first migration credentials.
 - Added `apps/web/src/db/client.ts` using `drizzle-orm/postgres-js` + `postgres` with `prepare: false`.
+
+## 2026-04-20 T14 — Schema split and push flow
+
+- Hand-authored `apps/web/src/db/schema.auth.ts` from the canonical better-auth Postgres schema instead of generating from CLI because auth server setup is not in place yet.
+- Kept `apps/web/src/db/schema.app.ts` to exactly one app table: `demo_items` exported as `demoItems`.
+- Used the root workspace command with sourced `apps/web/.env` plus `--force` so `db:push` succeeds non-interactively while still using `DATABASE_URL_DIRECT`.

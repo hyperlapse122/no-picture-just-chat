@@ -189,3 +189,10 @@ ABSENT: `index.html`, `app.config.ts`, `tailwind.config.*`, `postcss.config.*`, 
 
 ## T9 - shadcn cleanup
 - shadcn adds a large number of components and bloated CSS defaults when its registry specifies deep trees (like the old new-york registry). Manual pruning of CSS and dependencies in `package.json` is needed to keep the footprint strictly bounded to the required 5 components.
+
+## 2026-04-20 T14 — Drizzle schemas + Neon push
+
+- better-auth's Drizzle/Postgres adapter expects the canonical auth table names and column names exactly as documented: `user`, `session`, `account`, `verification`.
+- Keep app tables split from auth tables: `src/db/schema.auth.ts` and `src/db/schema.app.ts`; do not introduce a `src/db/index.ts` barrel.
+- In this repo's non-TTY shell, `drizzle-kit push` with `strict: true` needs `--force` to complete non-interactively even for create-table statements.
+- Verified Neon public tables after push: `account`, `demo_items`, `session`, `user`, `verification`.

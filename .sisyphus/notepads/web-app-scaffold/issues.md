@@ -19,3 +19,7 @@ No issues yet. Will record blockers, gotchas, and discoveries here.
 ## 2026-04-20 T10 notes
 - Bash verification emits a non-blocking mise warning about missing `npm:@typescript/native-preview@7.0.0-dev.20260419.1` before the actual command output.
 - `drizzle-kit --version` still exits 0 despite that warning.
+
+## 2026-04-20 T14 verification notes
+- `yarn workspace @h82/no-picture-just-chat-web typecheck` still fails on a pre-existing root/app TS config issue: `TS5101` for deprecated `baseUrl` without `ignoreDeprecations: "6.0"`.
+- This did not block schema creation or Neon `db:push`, but it prevents clean workspace typecheck verification until addressed separately.
