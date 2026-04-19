@@ -5,6 +5,9 @@
   "references": [
     {
       "path": "./packages/config/tsconfig.json"
+    },
+    {
+      "path": "./apps/web"
     }
   ]
 }
