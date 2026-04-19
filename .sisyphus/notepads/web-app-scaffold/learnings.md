@@ -205,6 +205,15 @@ ABSENT: `index.html`, `app.config.ts`, `tailwind.config.*`, `postcss.config.*`, 
 - `getRequestHeaders()` from `@tanstack/react-start/server` is the server-safe way to forward incoming headers into SSR tRPC calls.
 - SSR loaders should use a per-request `QueryClient` on the server and a browser singleton on the client; `staleTime: 60_000` avoids immediate hydration refetch churn.
 
+## 2026-04-20 T26 — Vitest workspace bin fix
+
+- `workspace:^` is **not valid** for a package that is not itself a workspace.
+  Yarn aborts with `Workspace not found` during resolution.
+- Declaring `vitest` with the exact root version (`^4.1.4`) in `apps/web/package.json`
+  was enough to expose the bin for workspace scripts while keeping install clean.
+- After that change, `yarn install` completed and `yarn workspace @h82/no-picture-just-chat-web test`
+  passed with 1 test file / 1 test.
+
 ## 2026-04-20 T24 — tRPC client integrations
 
 - `@trpc/tanstack-react-query@11.16.0` exports `createTRPCContext` from the package root; no adaptation layer was needed for the React-bound proxy file.
@@ -317,3 +326,119 @@ ABSENT: `index.html`, `app.config.ts`, `tailwind.config.*`, `postcss.config.*`, 
 - When strict routing is enabled and a route is new, using `as any` in `createFileRoute` and `redirect({ to: ... })` is a practical workaround until the route tree generator runs.
 - `useTRPC()` proxies from `@/integrations/trpc/react` integrate cleanly with TanStack Query's `useMutation`.
 - TanStack Form v1 validators expect specific object structures. Validating a single field with `arktype` against the whole schema object works nicely (e.g., `labelSchema.allows({ label: value })`).
+
+## 2026-04-20 T31 — SSR data-fetching skill
+
+- Created `.agents/skills/npjc-ssr-data-fetching/SKILL.md` to codify the SSR prefetch pattern.
+- **The Rule**: Loaders MUST prefetch via `ensureQueryData` and MUST NOT return query data to the component.
+- **Rationale**: Zero-hydration refetch via perfect `queryOptions` matches; `staleTime: 60_000` is global.
+- No manual `<HydrationBoundary>` needed as `setupRouterSsrQueryIntegration` is wired at the router level.
+- Verification via `curl` is the recommended way to ensure prefetch results are in the initial HTML.
+
+## AGENTS.md Update
+- Added `npjc-ssr-data-fetching` to Skills Index.
+- Added "Web App (`apps/web`)" section with stack details and key paths.
+- Verified TanStack Start SSR pattern in `apps/web/src/routes/index.tsx`.
+
+## apps/web/AGENTS.md Creation (2026-04-20)
+- Created hierarchical AGENTS.md for the web workspace.
+- Codified the SSR Data-Fetching Rule: Loaders MUST use `ensureQueryData`, and components MUST use `useQuery`.
+- Documented the auth pattern using `better-auth` (server vs client usage).
+- Documented the tRPC pattern (router definition vs react/server usage).
+- Noted the use of `arktype` for validation as an alternative to Zod.
+- Re-enforced the "No Barrel Exports" policy at the app level.
+
+## Wave G — e2e/web Playwright scaffold (2026-04-20)
+
+### Workspace setup
+- `e2e/*` glob in root `package.json` picks up `e2e/web/` automatically once `package.json` exists
+- `yarn install` from root registers the new workspace in a single pass — no root changes required
+- Peer dep warnings (`eslint`, `prettier`, `typescript` not provided by `e2e/web`) are identical to apps/web and pre-existing; not a blocker
+
+### tsconfig.json required for Playwright config types
+- Without `tsconfig.json`, LSP can't resolve `process` (missing node types)
+- Shared base config enables `exactOptionalPropertyTypes: true`, which breaks the idiomatic
+  `workers: process.env.CI ? 1 : undefined` pattern — must use conditional spread instead:
+  ```ts
+  ...(process.env.CI ? { workers: 1 } : {}),
+  ```
+- Alternative: override `exactOptionalPropertyTypes: false` like apps/web — but spreading is cleaner for e2e (no React/Vite considerations)
+
+### Minimal e2e tsconfig pattern
+```json
+{
+  "extends": "@h82/no-picture-just-chat-config/typescript",
+  "compilerOptions": { "types": ["node"] },
+  "include": ["tests", "playwright.config.ts"],
+  "exclude": ["node_modules", "test-results", "playwright-report"]
+}
+```
+
+### `@playwright/test` resolution
+- Declared in root devDependencies (`^1.59.1`), hoisted via Yarn 4 node-modules linker
+- `e2e/web/package.json` does NOT declare it — relies on hoisting (matches the "tools in root devDeps" convention from AGENTS.md)
+- No build step needed; tests ship as `.ts` and Playwright executes via `tsx`/node loader internally
+
+### webServer cwd pattern
+- `cwd: process.cwd()` so the `source apps/web/.env && ... vite dev` command runs from repo root
+- Matches the documented dev-server invocation in AGENTS.md
+- `reuseExistingServer: !process.env.CI` lets local runs piggyback on a manually started dev server
+
+---
+
+## Wave G — Vitest setup in apps/web (2026-04-20)
+
+### What was built
+
+- `apps/web/vitest.config.ts` — minimal config with `vite-tsconfig-paths` plugin and `environment: 'node'`
+- `apps/web/src/__tests__/env.test.ts` — smoke test that exercises the `parseEnv` factory exported from `src/env.ts`
+
+### Test strategy
+
+`src/env.ts` runs `parseEnv(process.env)` at module load and throws if validation fails. To avoid that side effect blowing up the import, the test:
+
+1. Populates `process.env` with synthetic valid values in `beforeAll`
+2. Dynamically imports `parseEnv` inside the test (`await import('../env')`)
+3. Calls `parseEnv` with its own synthetic input and asserts the result is not a `type.errors` instance
+
+Result: `Test Files 1 passed (1), Tests 1 passed (1)`.
+
+### Yarn 4 PATH gotcha — hoisted dev bins are NOT in workspace script PATH
+
+The task's premise that `vitest` being in root `devDependencies` (hoisted via `nodeLinker: node-modules`) makes it accessible to `yarn workspace <name> test` is **incorrect**. In Yarn 4 the bins in `./node_modules/.bin` are only auto-added to a script's PATH when the package is declared as a dependency of the workspace that runs the script. Peer-dep declarations in sibling packages (like `packages/config`) do not inject the bin into the consumer's PATH either.
+
+Reproduced:
+
+```
+$ yarn workspace @h82/no-picture-just-chat-web test
+command not found: vitest      # exit 127
+
+$ PATH="$PWD/node_modules/.bin:$PATH" yarn workspace @h82/no-picture-just-chat-web test
+Test Files  1 passed (1)
+Tests       1 passed (1)       # exit 0
+```
+
+`apps/web/node_modules` exists but is empty (no `.bin`). Bins live only in `<repo-root>/node_modules/.bin`. The repo's own convention, already documented in `AGENTS.md` line 197, is to prepend that path manually:
+
+```
+cd apps/web && source .env && PATH="$ROOT/node_modules/.bin:$PATH" vite dev --port 3000
+```
+
+### Options to make the bare `yarn workspace ... test` work (for a future orchestrator decision)
+
+1. Add `vitest` (and `vite`) to `apps/web/devDependencies` — standard yarn-4 pattern, no duplicate installs because of hoisting. This is what most monorepos do.
+2. Change the `test` script to `yarn -T vitest run` (top-level yarn bin resolution). One-line edit to `apps/web/package.json`.
+3. Accept the PATH convention and document `PATH="$ROOT/node_modules/.bin:$PATH" yarn workspace ... test` as the canonical invocation.
+
+This task's constraints forbade (1) and modifying any file outside `vitest.config.ts` / `src/__tests__/env.test.ts`, so (2) was also off-limits. Setup is correct; the invocation wrapper is the only open decision.
+
+### Files touched
+
+- `apps/web/vitest.config.ts` (new)
+- `apps/web/src/__tests__/env.test.ts` (new)
+- `apps/web/tsconfig.json` `include` already listed `vitest.config.ts` — no change needed
+
+### Verification
+
+- `lsp_diagnostics` clean on both new files
+- Test run (with `PATH` prepended): 1 file / 1 test / exit 0 / ~170 ms

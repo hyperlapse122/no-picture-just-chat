@@ -40,3 +40,9 @@ e2e/*/playwright/.cache/
 
 # lefthook — per-machine overrides (not committed)
 lefthook-local.yml
+
+# Build outputs
+apps/web/dist/
+apps/web/.output/
+apps/web/.vinxi/
+apps/web/tsconfig.tsbuildinfo

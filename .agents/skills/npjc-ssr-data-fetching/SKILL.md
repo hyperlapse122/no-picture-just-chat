@@ -78,6 +78,55 @@ function PostsComponent() {
 
 ## Anti-Patterns
 
+### ❌ Wrong: returning data from loader / using `Route.useLoaderData`
+
+```typescript
+// WRONG — do NOT do this
+export const Route = createFileRoute('/posts')({
+  loader: async ({ context }) => {
+    const serverTrpc = createServerTRPC(context.queryClient);
+    // ❌ Fetching and RETURNING data — bypasses React Query cache entirely
+    const posts = await serverTrpc.posts.list.query({ limit: 10 });
+    return { posts }; // ❌ Never return query data from a loader
+  },
+  component: PostsComponent,
+});
+
+function PostsComponent() {
+  // ❌ Reading from loader data instead of the cache
+  const { posts } = Route.useLoaderData();
+  return <ul>{posts.map(p => <li key={p.id}>{p.title}</li>)}</ul>;
+}
+```
+
+**Why it's wrong**: Bypasses React Query's cache entirely. Data is not dehydrated/rehydrated, so the client refetches on every navigation. No cache invalidation, no stale-while-revalidate, no devtools visibility.
+
+### ❌ Wrong: using `prefetchQuery` instead of `ensureQueryData`
+
+```typescript
+// WRONG — do NOT do this
+loader: async ({ context }) => {
+  // ❌ prefetchQuery silently swallows errors — blank page on failure
+  await context.queryClient.prefetchQuery(serverTrpc.posts.list.queryOptions());
+},
+```
+
+**Why it's wrong**: `prefetchQuery` does not throw on error. If the server call fails, the loader succeeds silently and the component renders with `undefined` data.
+
+### ❌ Wrong: mismatched `queryOptions` between loader and component
+
+```typescript
+// WRONG — do NOT do this
+loader: (async ({ context }) => {
+  // Loader uses limit: 10
+  await context.queryClient.ensureQueryData(serverTrpc.posts.list.queryOptions({ limit: 10 }));
+},
+  function PostsComponent() {
+    // ❌ Component uses limit: 20 — different cache key, triggers refetch
+    const { data } = useQuery(trpc.posts.list.queryOptions({ limit: 20 }));
+  });
+```
+
 | Pattern                                         | Why it's wrong                                                                                              | Correct Alternative                                       |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | `return data` from loader                       | Forces `useLoaderData` which bypasses React Query's cache and features.                                     | Use `ensureQueryData` and return nothing (or metadata).   |
