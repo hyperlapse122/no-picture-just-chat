@@ -1424,6 +1424,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@h82/no-picture-just-chat-e2e-web@workspace:e2e/web":
+  version: 0.0.0-use.local
+  resolution: "@h82/no-picture-just-chat-e2e-web@workspace:e2e/web"
+  dependencies:
+    "@h82/no-picture-just-chat-config": "workspace:^"
+  languageName: unknown
+  linkType: soft
+
 "@h82/no-picture-just-chat-web@workspace:apps/web":
   version: 0.0.0-use.local
   resolution: "@h82/no-picture-just-chat-web@workspace:apps/web"
@@ -1462,6 +1470,7 @@ __metadata:
     tailwindcss: "npm:4.2.2"
     tw-animate-css: "npm:^1.4.0"
     vite-tsconfig-paths: "npm:6.1.1"
+    vitest: "npm:^4.1.4"
   languageName: unknown
   linkType: soft
 
