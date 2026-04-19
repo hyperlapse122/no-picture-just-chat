@@ -20,5 +20,23 @@ node_modules
 .sisyphus/*
 !.sisyphus/notepads
 
+# Env
+.env
+.env.local
+.env.*.local
+!/.env.example
+!apps/*/.env.example
+
+# Sisyphus evidence
+.sisyphus/evidence/
+
+# Drizzle (keep SQL files tracked, ignore local journal meta)
+apps/*/drizzle/meta/
+
+# Playwright per-workspace artifact dirs
+e2e/*/test-results/
+e2e/*/playwright-report/
+e2e/*/playwright/.cache/
+
 # lefthook — per-machine overrides (not committed)
 lefthook-local.yml
