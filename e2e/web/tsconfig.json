@@ -1,0 +1,8 @@
+{
+  "extends": "@h82/no-picture-just-chat-config/typescript",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["tests", "playwright.config.ts"],
+  "exclude": ["node_modules", "test-results", "playwright-report"]
+}

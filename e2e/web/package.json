@@ -1,0 +1,13 @@
+{
+  "name": "@h82/no-picture-just-chat-e2e-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@h82/no-picture-just-chat-config": "workspace:^"
+  }
+}
