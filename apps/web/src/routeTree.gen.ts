@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root';
 import { Route as AboutRouteImport } from './routes/about';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$';
+import { Route as ApiTrpcTrpcRouteImport } from './routes/api/trpc/$trpc';
 
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
@@ -28,35 +29,44 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any);
+const ApiTrpcTrpcRoute = ApiTrpcTrpcRouteImport.update({
+  id: '/api/trpc/$trpc',
+  path: '/api/trpc/$trpc',
+  getParentRoute: () => rootRouteImport,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/about': typeof AboutRoute;
   '/api/auth/$': typeof ApiAuthSplatRoute;
+  '/api/trpc/$trpc': typeof ApiTrpcTrpcRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/about': typeof AboutRoute;
   '/api/auth/$': typeof ApiAuthSplatRoute;
+  '/api/trpc/$trpc': typeof ApiTrpcTrpcRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
   '/about': typeof AboutRoute;
   '/api/auth/$': typeof ApiAuthSplatRoute;
+  '/api/trpc/$trpc': typeof ApiTrpcTrpcRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/about' | '/api/auth/$';
+  fullPaths: '/' | '/about' | '/api/auth/$' | '/api/trpc/$trpc';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/about' | '/api/auth/$';
-  id: '__root__' | '/' | '/about' | '/api/auth/$';
+  to: '/' | '/about' | '/api/auth/$' | '/api/trpc/$trpc';
+  id: '__root__' | '/' | '/about' | '/api/auth/$' | '/api/trpc/$trpc';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   AboutRoute: typeof AboutRoute;
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
+  ApiTrpcTrpcRoute: typeof ApiTrpcTrpcRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/api/trpc/$trpc': {
+      id: '/api/trpc/$trpc';
+      path: '/api/trpc/$trpc';
+      fullPath: '/api/trpc/$trpc';
+      preLoaderRoute: typeof ApiTrpcTrpcRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiTrpcTrpcRoute: ApiTrpcTrpcRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
