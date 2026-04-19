@@ -196,3 +196,107 @@ ABSENT: `index.html`, `app.config.ts`, `tailwind.config.*`, `postcss.config.*`, 
 - Keep app tables split from auth tables: `src/db/schema.auth.ts` and `src/db/schema.app.ts`; do not introduce a `src/db/index.ts` barrel.
 - In this repo's non-TTY shell, `drizzle-kit push` with `strict: true` needs `--force` to complete non-interactively even for create-table statements.
 - Verified Neon public tables after push: `account`, `demo_items`, `session`, `user`, `verification`.
+
+## 2026-04-20 T17 — better-auth server module
+
+## 2026-04-20 T22 — SSR query integrations
+
+- `createTRPCOptionsProxy` must be imported from `@trpc/tanstack-react-query` directly; the `create-options-proxy` subpath does not exist.
+- `getRequestHeaders()` from `@tanstack/react-start/server` is the server-safe way to forward incoming headers into SSR tRPC calls.
+- SSR loaders should use a per-request `QueryClient` on the server and a browser singleton on the client; `staleTime: 60_000` avoids immediate hydration refetch churn.
+
+## 2026-04-20 T24 — tRPC client integrations
+
+- `@trpc/tanstack-react-query@11.16.0` exports `createTRPCContext` from the package root; no adaptation layer was needed for the React-bound proxy file.
+- The subpath `@trpc/tanstack-react-query/create-options-proxy` is **not** exported in this install (`ERR_PACKAGE_PATH_NOT_EXPORTED`), so integrations should import from the package root instead of assuming internal subpaths are public.
+- Browser/session-safe client transport is `httpBatchLink` with a custom `fetch` that forces `credentials: 'include'`; server-side base URL should resolve from `BETTER_AUTH_URL` and otherwise fall back to `http://localhost:3000`.
+- Keep the integration surface explicit: `src/integrations/trpc/client.ts` and `src/integrations/trpc/react.tsx` only; no `src/integrations/index.ts` or `src/integrations/trpc/index.ts` barrels.
+
+- Verified `better-auth` 1.6.5 exports before wiring imports: Drizzle adapter is `better-auth/adapters/drizzle`, TanStack Start cookies plugin is `better-auth/tanstack-start`, and the React client export for follow-up work is `better-auth/react`.
+- `tanstackStartCookies()` must be the final plugin in the `plugins` array; the package typings and inline docs both describe it as the cookie bridge for TanStack Start.
+- `import * as authSchema` is the one justified namespace import here because `drizzleAdapter(..., { schema })` expects the full schema object map, not individual table bindings.
+- Workspace-wide `yarn workspace @h82/no-picture-just-chat-web exec tsc --noEmit` is currently blocked by existing scaffold issues (`baseUrl` deprecation warning plus missing `routeTree.gen` / devtools types), but `apps/web/src/lib/auth.ts` itself is clean via LSP diagnostics.
+
+## 2026-04-20 T18 — TanStack Start auth catch-all route
+
+- `apps/web/src/routes/api/` had no existing server-route examples, so the catch-all auth handler follows TanStack Start's `createServerFileRoute('/api/auth/$').methods(...)` convention directly.
+- The handler is intentionally thin: both `GET` and `POST` forward straight to `auth.handler(request)` with no extra headers or business logic.
+
+## 2026-04-20 T19 — better-auth client module
+
+- Verified `better-auth/react` exists via `yarn npm info better-auth exports --json | grep react` before creating the client wrapper.
+- `createAuthClient` needed an explicit `ReturnType<typeof createAuthClient>` annotation to keep LSP diagnostics clean in `apps/web/src/lib/auth-client.ts`.
+- The client wrapper stays browser-origin aware and avoids hardcoded localhost URLs.
+
+## 2026-04-20 T18 — better-auth end-to-end verification + C7
+
+### Blockers encountered (prior-task artifacts)
+- `yarn workspace @h82/no-picture-just-chat-web dev` failed with `command not found: vite`
+  because apps/web/package.json does not declare `vite` / `typescript` as direct deps —
+  the config package declares them as peers. Yarn 4 does NOT put root `node_modules/.bin`
+  on a workspace script's PATH if the workspace doesn't declare the dep. Workaround used:
+  `PATH="$ROOT/node_modules/.bin:$PATH" vite dev --port 3000` directly in tmux.
+- `__root.tsx` imports `@tanstack/react-devtools`, but that package was NOT in
+  `apps/web/package.json` (was pruned at some earlier step along with the shadcn cleanup).
+  Added `@tanstack/react-devtools@0.10.2` as a devDep to fix the 500.
+- `@better-auth/core@1.6.5` requires `@opentelemetry/api ^1.9.0` as a **non-optional peer
+  dependency** (not declared on `better-auth` itself — only on the nested `@better-auth/core`).
+  Missing it causes `Cannot find package '@opentelemetry/api' imported from .../tracer.mjs`
+  at first request after auth init. Added `@opentelemetry/api@1.9.1`.
+- Both of these `package.json` + `yarn.lock` changes are INTENTIONALLY left uncommitted by
+  this task — C7's scope is strictly the 3 better-auth wiring files. A follow-up task
+  should land the missing deps cleanly.
+
+### Verification outcomes (port 3000)
+- `GET /` → `200` (after adding the two missing deps).
+- `POST /api/auth/sign-up/email` → `200`, `Set-Cookie: better-auth.session_token=...; HttpOnly; SameSite=Lax; Max-Age=604800; Path=/`, body contains `"email":"qa-bot@example.test"` and `"id":"YWIEc6Uk4c4WgL0yGtrFL8kBZTl55wml"`.
+- `POST /api/auth/sign-in/email` → `200`, fresh `Set-Cookie` with `HttpOnly`, body `{"redirect":false, "token":"…", "user":{…}}`.
+- `psql` against `DATABASE_URL_DIRECT`: exactly one `"user"` row with `email='qa-bot@example.test'`, `name='QA Bot'`, `email_verified=false`, `created_at='2026-04-19 16:33:24.478'` — confirming the drizzle adapter persisted through to Neon.
+
+### Schema columns are snake_case in Postgres
+- Drizzle-exposed fields (`emailVerified`, `createdAt`, etc.) are mapped to **snake_case columns**
+  in Neon (`email_verified`, `created_at`). Any raw psql check must use the snake_case names.
+
+### Evidence (uncommitted, under .sisyphus/evidence/)
+- `task-18-signup-response.txt` — full curl -i sign-up response
+- `task-18-signin-response.txt` — full curl -i sign-in response
+- `task-18-db-row.txt` — psql SELECT result
+
+### C7
+- Commit `56b48a9` — `feat(web): add better-auth with drizzle adapter`
+- Exactly 3 files: `apps/web/src/lib/auth.ts`, `apps/web/src/lib/auth-client.ts`, `apps/web/src/routes/api/auth/$.ts`
+- Lefthook pre-commit (eslint + prettier) and commit-msg (commitlint) passed cleanly.
+
+### Misc
+- Port 3000 was occupied at task start by a stale `apps/auth/.output/server/index.mjs`
+  from a different worktree (`clever-wizard`). Killed that PID before starting our server.
+- The test user `qa-bot@example.test` (password `QaBot!2026Pass`) is intentionally left
+  in the Neon `user` table for T33 Playwright tests to reuse.
+
+## 2026-04-20 T26 — tRPC server scaffold
+
+- `auth.api.getSession({ headers: req.headers })` is the correct way to derive the server session for tRPC fetch-context creation in this app.
+- `db` can be passed through tRPC context directly from `@/db/client`; the demo mutation should stay side-effect free and only echo validated input.
+- `arktype` validators work directly with tRPC v11 `.input(...)` here; no Standard Schema adapter layer is needed.
+- `apps/web/src/server/` had no prior contents, so creating `apps/web/src/server/trpc/` introduced no barrel-file conflicts; `find apps/web/src/server \( -name 'index.ts' -o -name 'index.js' \)` returned empty.
+- LSP diagnostics are clean for `apps/web/src/server/trpc/context.ts`, `init.ts`, and `router.ts`.
+- Workspace typecheck remains blocked by a pre-existing app config issue outside this task: `apps/web/tsconfig.json` uses deprecated `baseUrl`, which TypeScript 6 reports as `TS5101` unless `ignoreDeprecations` is set.
+
+## 2026-04-20 T27 — tRPC HTTP route mount
+
+- TanStack Start route handlers should use `createFileRoute(...).server.handlers` here; `createServerFileRoute` is not available in this version.
+- tRPC HTTP mounting stays thin: one `fetchRequestHandler`, shared `endpoint: '/api/trpc'`, and both `GET`/`POST` delegate to the same request handler.
+- `createTRPCContext` expects a fresh `Headers()` instance for `resHeaders` when used through the fetch adapter.
+
+## 2026-04-20 T28 — router SSR query wiring
+
+- `@tanstack/react-router-ssr-query@1.166.11` exports `setupRouterSsrQueryIntegration` as a named export; use it directly from `@tanstack/react-router-ssr-query`.
+- The app router should expose a `createRouter()` factory, create a fresh `queryClient` per router instance, and place only `queryClient` on the router context.
+- `setupRouterSsrQueryIntegration({ router, queryClient })` replaces any need for manual `<HydrationBoundary>` usage in `apps/web/src/`.
+- Keep `defaultPreload: 'intent'` on the router config while wiring SSR query integration.
+
+- Rewrote `__root.tsx` to configure the Root Route with `createRootRouteWithContext<{ queryClient: QueryClient }>()`.
+- Setup `TRPCProvider` wrapping `<Outlet />` with `queryClient` retrieved via `Route.useRouteContext()`.
+- Removed standard UI wrapper shell (Headers/Footers), opting for a minimal Tailwind CSS layout on `body` and `main`.
+- Devtools (`TanStackRouterDevtools` and `ReactQueryDevtools`) conditionally injected using `import.meta.env.DEV` conditional block without needing lazy loading per constraints.
+- Included Vite asset parameter `?url` to correctly obtain `app.css`'s URL for injection into `<head>`.
