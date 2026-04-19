@@ -17,7 +17,13 @@ triggers:
 
 # NPJC SSR Data Fetching Strategy
 
-**The Rule**: Loaders MUST prefetch data into the `queryClient` cache using `ensureQueryData` and MUST NOT return that data to the component.
+## TL;DR
+
+Loaders prefetch into the cache using `ensureQueryData` and return nothing, while components read from the cache via `useQuery`.
+
+## The Rule
+
+Loaders MUST prefetch data into the `queryClient` cache using `ensureQueryData` and MUST NOT return that data to the component.
 
 ## Why
 
@@ -127,14 +133,6 @@ loader: (async ({ context }) => {
   });
 ```
 
-| Pattern                                         | Why it's wrong                                                                                              | Correct Alternative                                       |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `return data` from loader                       | Forces `useLoaderData` which bypasses React Query's cache and features.                                     | Use `ensureQueryData` and return nothing (or metadata).   |
-| `context.queryClient.prefetchQuery(...)`        | `prefetchQuery` doesn't throw on error, potentially leading to blank pages without proper error boundaries. | Use `context.queryClient.ensureQueryData(...)`.           |
-| `staleTime: 0` (default)                        | Prefetched data is considered stale immediately, triggering a refetch on hydration.                         | `staleTime: 60_000` is set globally in `query-client.ts`. |
-| Manual `<HydrationBoundary>`                    | Redundant; `setupRouterSsrQueryIntegration` handles hydration automatically.                                | Omit manual hydration boundaries.                         |
-| Different `queryOptions` in loader vs component | Cache keys won't match, causing a refetch on the client.                                                    | Use identical `queryOptions` and inputs.                  |
-
 ## Setup Checklist
 
 - [x] **Global staleTime**: `staleTime: 60_000` must be configured in `apps/web/src/integrations/query-client.ts`.
@@ -149,7 +147,7 @@ Loaders should only return non-query metadata or perform redirects:
 - `throw redirect({ to: '/login' })` (Auth guards)
 - `return undefined` (Default)
 
-## Mutation Pattern
+## Mutations
 
 Mutations should use the `mutationOptions` from the tRPC proxy to maintain consistency and type safety.
 
@@ -170,13 +168,37 @@ const mutation = useMutation(
 To verify that SSR is working and the HTML contains prefetched data:
 
 ```bash
-# Check if the response contains the expected data string
-curl -s http://localhost:3000/posts | grep "Expected Data String"
+# Expect empty: components should NOT read from loader data
+grep -rE 'Route\.useLoaderData' apps/web/src/routes/
+
+# Expect empty: prefetchQuery is suppressed in favor of ensureQueryData
+grep -rE 'prefetchQuery' apps/web/src/routes/
+
+# Expect empty: useLoaderData hook should not be used for queries
+grep -rE 'useLoaderData' apps/web/src/routes/
+
+# Verify SSR: raw HTML should contain QA bot welcome message
+curl -sS http://localhost:3000/ | grep -q 'hello qa'
+
+# Verify Pattern: routes should use ensureQueryData for SSR
+grep -rE 'ensureQueryData' apps/web/src/routes/
 ```
 
-## Reference Files
+## Anti-Patterns Quick Table
 
-- `apps/web/src/integrations/trpc/server.ts`: `createServerTRPC` implementation.
+| Pattern                                         | Why it's wrong                                                                                              | Correct Alternative                                      |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `return data` from loader                       | Forces `useLoaderData` which bypasses React Query's cache and features.                                     | Use `ensureQueryData` and return nothing (or metadata).  |
+| `useLoaderData`                                 | Reads from loader return value, not cache                                                                   | Use `useQuery` with same `queryOptions`                  |
+| `context.queryClient.prefetchQuery(...)`        | `prefetchQuery` doesn't throw on error, potentially leading to blank pages without proper error boundaries. | Use `context.queryClient.ensureQueryData(...)`.          |
+| `staleTime: 0` (default)                        | Prefetched data is considered stale immediately, triggering a refetch on hydration.                         | Set `staleTime: 60_000` globally in `query-client.ts`.   |
+| Manual `<HydrationBoundary>`                    | Redundant; `setupRouterSsrQueryIntegration` handles hydration automatically.                                | Omit manual hydration boundaries.                        |
+| Different `queryOptions` in loader vs component | Cache keys won't match, causing a refetch on the client.                                                    | Use identical `queryOptions` and inputs.                 |
+| `prefetchQuery`                                 | Silent failures leading to partial hydration errors or empty states.                                        | Use `ensureQueryData` to propagate errors to boundaries. |
+
+## Reference
+
+- `apps/web/src/integrations/trpc/server.server.ts`: `createServerTRPC` implementation.
 - `apps/web/src/integrations/trpc/react.ts`: `useTRPC` implementation.
 - `apps/web/src/integrations/query-client.ts`: `QueryClient` configuration and `staleTime`.
 - `apps/web/src/routes/index.tsx`: Canonical example of the pattern.
