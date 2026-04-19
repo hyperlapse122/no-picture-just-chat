@@ -39,6 +39,41 @@ git checkout -b feat/add-auth              # ✗ rejected by pre-push
 git checkout -b opencode/playful-engine    # ✗ rejected by pre-push
 ```
 
+### Agents on auto-generated branches (MANDATORY rename before push)
+
+If `git branch --show-current` returns a branch matching the regex
+
+```
+^(opencode|codex)/.+$
+```
+
+(e.g. `opencode/quick-otter`, `codex/refactor-chat`), the agent **MUST** rename it to follow the
+Conventional Branch pattern **before any `git push`**. The local `pre-push` hook will reject the push
+otherwise, and server-side CI assumes branches already conform.
+
+Procedure:
+
+1. Analyze the current diff + commit history to infer a descriptive slug.
+2. Pick the correct prefix (`feature/`, `bugfix/`, `hotfix/`, `chore/`, `docs/`, `refactor/`, `release/`).
+3. Rename:
+
+   ```bash
+   git branch -m <prefix>/<slug>
+   ```
+
+4. Verify: `git branch --show-current` matches the project regex in `lefthook.yml:pre-push`.
+5. Push normally: `git push -u origin <prefix>/<slug>`.
+
+If the auto-generated branch was already pushed to the remote (rare — `pre-push` rejects it), delete
+the remote ref AFTER the correctly-named branch has been pushed:
+
+```bash
+git push origin --delete <old-auto-generated-name>
+```
+
+The `git-flow-branch-creator` skill (user-level) can automate the naming step. Full rulebook:
+`.agents/skills/npjc-branching/SKILL.md`.
+
 ## Pull Requests — squash-merge, template-driven
 
 - **Title**: same Conventional Commits format as commits (becomes `main`'s commit on squash).
@@ -190,3 +225,25 @@ yarn npm info <pkg> version     # Verify latest published version before bumping
 - **JSON import attribute** — `with { type: 'json' }` required for TypeScript config import in Node.js ≥ 20.
 - **VSCode** — format-on-save with Prettier, ESLint auto-fix on save, flat config enabled.
 - **ESLint 10 + flat config** — uses `tseslint.config()` spread pattern with `eslint-config-prettier`.
+
+## CI / GitHub Actions
+
+Three workflows are configured in `.github/workflows/`:
+
+- `validate.yml`: Runs on `main` push, PR (opened/sync/reopened/edited), and `workflow_dispatch`. 5 parallel jobs: `lint`, `format-check`, `typecheck`, `commitlint`, `pr-title`. `commitlint` and `pr-title` are gated to PRs.
+- `test.yml`: `workflow_dispatch` stub. No tests currently exist; activates when a `test` script is added.
+- `deploy.yml`: `workflow_dispatch` stub with an `environment` input (default: `preview`). Target (Vercel, Cloudflare, etc.) is TBD.
+
+### CI Advisory
+
+- **Node version**: Hardcoded to `24` (matches `mise.toml`) as `setup-node` doesn't read mise config.
+- **Composite action candidate**: `validate.yml` has 5 identical setup blocks. Consider `.github/actions/setup/` if jobs increase.
+- **Dispatch limitation**: Stub workflows must exist on the default branch (`main`) to be dispatchable via `gh workflow run` without `--ref`. Use `gh workflow run <name> --ref <branch>` during development.
+- **Deploy inputs**: `deploy.yml` currently echoes `${{ inputs.environment }}` in a `run` block. Switch to an `env` pattern when wiring a real target.
+
+### Linked Skills
+
+| Skill                | Relevance to CI                                                                   |
+| -------------------- | --------------------------------------------------------------------------------- |
+| `npjc-commits`       | CI enforces Conventional Commits via `commitlint` job                             |
+| `npjc-pull-requests` | PR titles are linted in CI to ensure semantic squash-merges; PR body requirements |
