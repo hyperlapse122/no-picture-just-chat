@@ -1,41 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { createServerFn } from '@tanstack/react-start';
 import { createFileRoute } from '@tanstack/react-router';
-import { createTRPCClient, httpBatchLink } from '@trpc/client';
-import type { AppRouter } from '@/server/trpc/router';
-
-const getGreeting = createServerFn({ method: 'GET' }).handler(async () => {
-  const { getRequestHeaders } = await import('@tanstack/react-start/server');
-  const headers = getRequestHeaders();
-
-  const client = createTRPCClient<AppRouter>({
-    links: [
-      httpBatchLink({
-        url: `${process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'}/api/trpc`,
-        headers: () => Object.fromEntries(headers.entries()),
-      }),
-    ],
-  });
-
-  return client.demo.greet.query({ name: 'qa' });
-});
-
-function greetingQueryOptions() {
-  return {
-    queryKey: ['demo', 'greet', 'qa'],
-    queryFn: () => getGreeting(),
-  };
-}
+import { useTRPC } from '@/integrations/trpc/react';
+import { createServerTRPC } from '@/integrations/trpc/server.server';
 
 export const Route = createFileRoute('/')({
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(greetingQueryOptions());
+    const serverTrpc = createServerTRPC(context.queryClient);
+    await context.queryClient.ensureQueryData(serverTrpc.demo.greet.queryOptions({ name: 'qa' }));
   },
   component: HomeComponent,
 });
 
 function HomeComponent() {
-  const { data } = useQuery(greetingQueryOptions());
+  const trpc = useTRPC();
+  const { data } = useQuery(trpc.demo.greet.queryOptions({ name: 'qa' }));
 
   return (
     <div>
