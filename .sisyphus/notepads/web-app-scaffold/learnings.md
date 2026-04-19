@@ -212,6 +212,11 @@ ABSENT: `index.html`, `app.config.ts`, `tailwind.config.*`, `postcss.config.*`, 
 - Browser/session-safe client transport is `httpBatchLink` with a custom `fetch` that forces `credentials: 'include'`; server-side base URL should resolve from `BETTER_AUTH_URL` and otherwise fall back to `http://localhost:3000`.
 - Keep the integration surface explicit: `src/integrations/trpc/client.ts` and `src/integrations/trpc/react.tsx` only; no `src/integrations/index.ts` or `src/integrations/trpc/index.ts` barrels.
 
+## 2026-04-20 T25 — home route SSR prefetch pattern
+
+- TanStack Router home routes can SSR-prefetch tRPC data by creating a server proxy inside `loader` with `createServerTRPC(context.queryClient)` and awaiting `context.queryClient.ensureQueryData(...)`.
+- The route component should read the exact same `queryOptions` via `useQuery(useTRPC().demo.greet.queryOptions(...))`; the loader must not return the query data or use `Route.useLoaderData()`.
+
 - Verified `better-auth` 1.6.5 exports before wiring imports: Drizzle adapter is `better-auth/adapters/drizzle`, TanStack Start cookies plugin is `better-auth/tanstack-start`, and the React client export for follow-up work is `better-auth/react`.
 - `tanstackStartCookies()` must be the final plugin in the `plugins` array; the package typings and inline docs both describe it as the cookie bridge for TanStack Start.
 - `import * as authSchema` is the one justified namespace import here because `drizzleAdapter(..., { schema })` expects the full schema object map, not individual table bindings.
@@ -300,3 +305,15 @@ ABSENT: `index.html`, `app.config.ts`, `tailwind.config.*`, `postcss.config.*`, 
 - Removed standard UI wrapper shell (Headers/Footers), opting for a minimal Tailwind CSS layout on `body` and `main`.
 - Devtools (`TanStackRouterDevtools` and `ReactQueryDevtools`) conditionally injected using `import.meta.env.DEV` conditional block without needing lazy loading per constraints.
 - Included Vite asset parameter `?url` to correctly obtain `app.css`'s URL for injection into `<head>`.
+
+## `apps/web/src/routes/login.tsx` Creation
+- Used `@ts-expect-error` to suppress TanStack Router `FileRoutesByPath` type errors for newly created routes (`/login` and `/app`) since `routeTree.gen.ts` updates out-of-band.
+- Integrated `arktype` v2 validators seamlessly with TanStack Form v1 via the `onChange: ({ value }) => schema.allows({ prop: value }) ? undefined : 'error'` pattern.
+- Used inline state (`useState`) to catch and display `better-auth` errors rather than a global toast notification.
+- Imported shadcn components exclusively from their explicit `@/components/ui/*` paths to adhere to the no-barrel-exports policy.
+
+### TanStack Router Auth Guard & Form Setup
+- TanStack Router loader functions can check better-auth server-side sessions using `auth.api.getSession({ headers })` with `getRequestHeaders()` from `@tanstack/react-start/server`.
+- When strict routing is enabled and a route is new, using `as any` in `createFileRoute` and `redirect({ to: ... })` is a practical workaround until the route tree generator runs.
+- `useTRPC()` proxies from `@/integrations/trpc/react` integrate cleanly with TanStack Query's `useMutation`.
+- TanStack Form v1 validators expect specific object structures. Validating a single field with `arktype` against the whole schema object works nicely (e.g., `labelSchema.allows({ label: value })`).
