@@ -1,0 +1,2 @@
+ - Arktype env validators should use `type.errors` for runtime failure checks in 2.2+.
+ - A single module-load parse plus a pure `parseEnv(input)` factory satisfies both runtime and testability needs.

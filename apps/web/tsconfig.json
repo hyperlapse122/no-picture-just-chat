@@ -1,0 +1,19 @@
+{
+  "extends": "@h82/no-picture-just-chat-config/typescript",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "node"],
+    "verbatimModuleSyntax": false,
+    "exactOptionalPropertyTypes": false,
+    "ignoreDeprecations": "6.0",
+    "composite": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts", "drizzle.config.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", ".output", "dist", ".vinxi"]
+}

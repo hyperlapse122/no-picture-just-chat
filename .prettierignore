@@ -1,3 +1,10 @@
 .yarn
 .zed
 .sisyphus
+# Build outputs
+dist
+.output
+.vinxi
+.playwright-cli/
+# Auto-generated files
+apps/web/src/routeTree.gen.ts
