@@ -122,6 +122,37 @@ npm view <pkg> version                # fallback
 
 User-level skill `git-flow-branch-creator` pairs with `npjc-branching` to generate branch names from diffs.
 
+### Intent-Skills (module-scoped, via `@tanstack/intent`)
+
+When working in the code areas below, agents should load the linked skill file into context. These mappings are maintained in the machine-readable block below and surface the most relevant per-module skill from the `@tanstack/intent` registry. Discovery / refresh: `npx @tanstack/intent@latest list`.
+
+<!-- intent-skills:start -->
+
+```yaml
+# Skill mappings - when working in these areas, load the linked skill file into context.
+skills:
+  - task: 'Working in apps/web/src/routes/ — file-based routing, navigation, search/path params, not-found/error handling, type-safe Link/useParams'
+    load: 'node_modules/@tanstack/router-core/skills/router-core/SKILL.md'
+  - task: 'TanStack Start features — server functions, server routes, middleware, execution model, deployment, isomorphic code'
+    load: 'node_modules/@tanstack/start-client-core/skills/start-core/SKILL.md'
+  - task: 'tRPC server work in apps/web/src/server/trpc/ — routers, procedures, middlewares, validators, error handling'
+    load: 'node_modules/@trpc/server/skills/trpc-router/SKILL.md'
+  - task: 'tRPC client hooks + TanStack Query integration in apps/web/src/integrations/trpc/ — useTRPC, queryOptions, mutationOptions, invalidation'
+    load: 'node_modules/@trpc/tanstack-react-query/skills/react-query-setup/SKILL.md'
+  - task: 'SSR data-fetching in route loaders — ensureQueryData, loaderDeps, staleTime, hydration (pairs with npjc-ssr-data-fetching)'
+    load: 'node_modules/@tanstack/router-core/skills/router-core/data-loading/SKILL.md'
+  - task: 'Route auth guards — beforeLoad, _authenticated layouts, redirect(), RBAC (pairs with better-auth + login.tsx)'
+    load: 'node_modules/@tanstack/router-core/skills/router-core/auth-and-guards/SKILL.md'
+  - task: 'tRPC auth middleware — protectedProcedure, session context narrowing, opts.next({ ctx }) patterns'
+    load: 'node_modules/@trpc/server/skills/auth/SKILL.md'
+  - task: 'tRPC fetch adapter — fetchRequestHandler in apps/web/src/routes/api/trpc/$trpc.ts (WinterCG/TanStack Start runtime)'
+    load: 'node_modules/@trpc/server/skills/adapter-fetch/SKILL.md'
+  - task: '.env loading and environment variable safety (apps/web/src/env.ts + `source .env && vite dev` workflow)'
+    load: 'node_modules/dotenv/skills/dotenv/SKILL.md'
+```
+
+<!-- intent-skills:end -->
+
 ---
 
 # Export Policy
