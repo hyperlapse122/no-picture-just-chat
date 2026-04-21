@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
-    "start": "node server.mjs",
+    "start": "node .output/server/index.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@h82/no-picture-just-chat-config": "workspace:^",
-    "@hono/node-server": "1.19.14",
     "@opentelemetry/api": "1.9.1",
     "@tailwindcss/vite": "4.2.3",
     "@tanstack/react-form": "1.29.0",
@@ -56,6 +55,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.1",
     "drizzle-kit": "0.31.10",
+    "nitro": "3.0.260415-beta",
     "vite": "^8.0.9",
     "vite-tsconfig-paths": "6.1.1",
     "vitest": "^4.1.5"
