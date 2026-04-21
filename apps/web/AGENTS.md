@@ -146,14 +146,56 @@ export const appRouter = router({
 
 # Commands
 
-| Command              | Action                            |
-| -------------------- | --------------------------------- |
-| `yarn dev`           | Start dev server on port 3000     |
-| `yarn build`         | Build for production              |
-| `yarn typecheck`     | Run tsc --noEmit                  |
-| `yarn db:push`       | Push schema changes to Neon       |
-| `yarn db:studio`     | Open Drizzle Studio               |
-| `yarn auth:generate` | Generate better-auth client types |
+| Command              | Action                                                  |
+| -------------------- | ------------------------------------------------------- |
+| `yarn dev`           | Start dev server on port 3000                           |
+| `yarn build`         | Build for production (emits `.output/` via Nitro)       |
+| `yarn start`         | Run production server (`node .output/server/index.mjs`) |
+| `yarn typecheck`     | Run tsc --noEmit                                        |
+| `yarn db:push`       | Push schema changes to Neon                             |
+| `yarn db:studio`     | Open Drizzle Studio                                     |
+| `yarn auth:generate` | Generate better-auth client types                       |
+
+---
+
+# Build & Deploy
+
+Production builds use **Nitro 3 (beta)** via the `nitro/vite` plugin with the default `node-server` preset. `yarn build` emits a self-contained Node HTTP server under `.output/`.
+
+## Build Output Layout
+
+| Path                          | Role                                               |
+| ----------------------------- | -------------------------------------------------- |
+| `.output/server/index.mjs`    | Node HTTP server entry (self-listening)            |
+| `.output/server/package.json` | `{ "type": "module" }` for Node ESM resolution     |
+| `.output/public/`             | Static client assets (JS, CSS, images)             |
+| `.output/nitro.json`          | Build manifest (preset, entry, framework metadata) |
+
+`.output/` is ignored by `.gitignore`, `.prettierignore`, `tsconfig.json#exclude`, and `eslint.config.js#ignores`. Do not commit build output.
+
+## Running the Production Server
+
+```bash
+# from apps/web/
+source .env        # or inject env vars via your deployment platform
+yarn start         # equivalent to: node .output/server/index.mjs
+```
+
+The built server listens on port `3000` and serves both the SSR Node entry and the static assets from a single process. No reverse proxy is required for single-node deployments.
+
+## Nitro Plugin Order in `vite.config.ts`
+
+```ts
+plugins: [
+  tsConfigPaths(),
+  tanstackStart(), // must precede nitro() and viteReact()
+  nitro(), // inserts the node-server build pipeline
+  viteReact(),
+  tailwindcss(),
+];
+```
+
+This ordering follows the canonical TanStack Start hosting guide (https://tanstack.com/start/latest/docs/framework/react/guide/hosting.md). `tanstackStart()` must run before `nitro()`, and both must run before `viteReact()` for the SSR chunk graph to resolve correctly.
 
 ---
 
