@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const configDir = dirname(fileURLToPath(import.meta.url));
+const webDir = resolve(configDir, '../../apps/web');
 
 export default defineConfig({
   testDir: './tests',
@@ -18,9 +23,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'source apps/web/.env && PATH="$PWD/node_modules/.bin:$PATH" vite dev --port 3000',
+    command:
+      '[ -f ./.env ] && set -a && . ./.env && set +a; PATH="$PWD/../../node_modules/.bin:$PATH" vite dev --port 3000',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    cwd: process.cwd(),
+    cwd: webDir,
   },
 });
